@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Digital Product Payment</title>
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -28,16 +27,14 @@
         .paypal-button-container {
             margin: 25px 0;
             text-align: center;
+            display: none;
         }
         .generated-link {
             word-break: break-all;
             background: #f8f9fa;
             padding: 10px;
             border-radius: 5px;
-            margin-top: 15px;
-        }
-        .currency-selector {
-            max-width: 200px;
+            margin: 15px 0;
         }
         .btn-generate {
             background: #0d6efd;
@@ -46,6 +43,11 @@
         }
         .btn-generate:hover {
             background: #0b5ed7;
+        }
+        .loading-spinner {
+            display: none;
+            width: 2rem;
+            height: 2rem;
         }
     </style>
 </head>
@@ -58,14 +60,14 @@
             <input type="text" class="form-control" id="clientId" placeholder="Enter Client ID" required>
         </div>
 
-        <div class="row g-3">
+        <div class="row g-3 mb-3">
             <div class="col-md-6">
                 <label class="form-label">Amount</label>
                 <input type="number" class="form-control" id="amount" step="0.01" min="0.01" required>
             </div>
             <div class="col-md-6">
                 <label class="form-label">Currency</label>
-                <select class="form-select currency-selector" id="currency">
+                <select class="form-select" id="currency">
                     <option value="USD">USD</option>
                     <option value="CAD">CAD</option>
                     <option value="AUD">AUD</option>
@@ -78,31 +80,80 @@
             <textarea class="form-control" id="description" rows="3" required></textarea>
         </div>
 
-        <button class="btn btn-generate w-100" onclick="generateLink()">Generate Payment Link</button>
+        <button class="btn btn-generate w-100 mb-3" onclick="generateLink()">
+            <span class="spinner-border spinner-border-sm loading-spinner" role="status"></span>
+            Generate Payment Link
+        </button>
         <div id="linkContainer" class="generated-link"></div>
-
         <div id="paypal-button-container" class="paypal-button-container"></div>
     </div>
 
-    <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=sb&components=buttons,card-fields&enable-funding=venmo"></script>
-    
     <script>
+        let paypalLoaded = false;
         let paypalButtons;
-        
-        function initializePayPal() {
-            const clientId = document.getElementById('clientId').value;
+
+        function validateForm() {
+            const requiredFields = ['clientId', 'amount', 'description'];
+            return requiredFields.every(id => {
+                const field = document.getElementById(id);
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    return false;
+                }
+                field.classList.remove('is-invalid');
+                return true;
+            });
+        }
+
+        function generateLink() {
+            if (!validateForm()) {
+                alert('Please fill in all required fields');
+                return;
+            }
+
+            const btn = document.querySelector('.btn-generate');
+            btn.disabled = true;
+            document.querySelector('.loading-spinner').style.display = 'inline-block';
+
+            // Generate payment link
+            const baseUrl = window.location.href.split('?')[0];
+            const params = new URLSearchParams({
+                amount: document.getElementById('amount').value,
+                currency: document.getElementById('currency').value,
+                description: document.getElementById('description').value,
+                clientId: document.getElementById('clientId').value
+            });
             
-            // Reload SDK with new client ID
-            const script = document.createElement('script');
-            script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&components=buttons,card-fields&enable-funding=venmo`;
-            script.onload = () => {
+            const link = `${baseUrl}?${params.toString()}`;
+            document.getElementById('linkContainer').innerHTML = `
+                <strong>Payment Link:</strong><br>
+                <a href="${link}" target="_blank">${link}</a>
+            `;
+
+            // Load PayPal SDK
+            if (!paypalLoaded) {
+                const clientId = document.getElementById('clientId').value;
+                const script = document.createElement('script');
+                script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&components=buttons,card-fields&enable-funding=venmo`;
+                script.onload = () => {
+                    paypalLoaded = true;
+                    renderPayPalButtons();
+                    btn.disabled = false;
+                    document.querySelector('.loading-spinner').style.display = 'none';
+                };
+                document.body.appendChild(script);
+            } else {
                 renderPayPalButtons();
-            };
-            document.body.appendChild(script);
+                btn.disabled = false;
+                document.querySelector('.loading-spinner').style.display = 'none';
+            }
         }
 
         function renderPayPalButtons() {
+            // Clear existing buttons
+            document.getElementById('paypal-button-container').innerHTML = '';
+            
+            // Render PayPal Button
             paypal.Buttons({
                 style: {
                     layout: 'vertical',
@@ -131,8 +182,8 @@
                     });
                 }
             }).render('#paypal-button-container');
-            
-            // Card Fields integration
+
+            // Render Card Fields
             const cardFields = paypal.CardFields({
                 style: {
                     input: {
@@ -151,25 +202,11 @@
                 }
             });
             cardFields.render('#paypal-button-container');
+
+            // Show payment container
+            document.querySelector('.paypal-button-container').style.display = 'block';
         }
 
-        function generateLink() {
-            const baseUrl = window.location.href.split('?')[0];
-            const params = new URLSearchParams({
-                amount: document.getElementById('amount').value,
-                currency: document.getElementById('currency').value,
-                description: document.getElementById('description').value,
-                clientId: document.getElementById('clientId').value
-            });
-            
-            const link = `${baseUrl}?${params.toString()}`;
-            document.getElementById('linkContainer').innerHTML = `
-                <strong>Payment Link:</strong><br>
-                <a href="${link}" target="_blank">${link}</a>
-            `;
-        }
-
-        // Initialize form with URL parameters
         function initFromURL() {
             const params = new URLSearchParams(window.location.search);
             if(params.has('amount')) document.getElementById('amount').value = params.get('amount');
@@ -177,13 +214,11 @@
             if(params.has('description')) document.getElementById('description').value = params.get('description');
             if(params.has('clientId')) document.getElementById('clientId').value = params.get('clientId');
             
-            if(params.size > 0) initializePayPal();
+            // Auto-generate link if URL parameters exist
+            if(params.size > 0) generateLink();
         }
 
-        // Initialize when Client ID changes
-        document.getElementById('clientId').addEventListener('change', initializePayPal);
-        
-        // Initial page load
+        // Initialize form when page loads
         initFromURL();
     </script>
 </body>
