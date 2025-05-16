@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="-en">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Product Checkout</title>
+    <title>Digital Goods Store</title>
+    <script src="https://www.paypal.com/sdk/js?client-id=YOUR_CLIENT_ID&currency=USD&components=buttons,hosted-fields"></script>
     <style>
         :root {
             --primary-color: #003087;
@@ -12,14 +13,14 @@
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            max-width: 600px;
+            font-family: 'Arial', sans-serif;
+            max-width: 800px;
             margin: 2rem auto;
             padding: 20px;
-            background: var(--background);
+            background-color: var(--background);
         }
 
-        .checkout-container {
+        .container {
             background: white;
             padding: 2rem;
             border-radius: 12px;
@@ -34,7 +35,7 @@
             display: block;
             margin-bottom: 0.5rem;
             color: var(--primary-color);
-            font-weight: 600;
+            font-weight: bold;
         }
 
         input, select, textarea {
@@ -42,84 +43,64 @@
             padding: 0.8rem;
             border: 2px solid #ddd;
             border-radius: 6px;
-            font-size: 16px;
+            font-size: 1rem;
             transition: border-color 0.3s ease;
         }
 
-        .amount-input {
-            position: relative;
-        }
-
-        .currency-symbol {
-            position: absolute;
-            left: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            pointer-events: none;
-        }
-
-        #amount {
-            padding-left: 30px;
-        }
-
-        button {
-            background: var(--primary-color);
-            color: white;
-            padding: 1rem 2rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background 0.3s ease;
-            width: 100%;
-        }
-
-        button:hover {
-            background: var(--secondary-color);
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--primary-color);
+            outline: none;
         }
 
         #paypal-button-container {
             margin-top: 2rem;
         }
 
-        .highlight-box {
-            background: #e3f2fd;
-            padding: 1rem;
-            border-radius: 8px;
-            margin: 1rem 0;
+        .currency-group {
+            display: flex;
+            gap: 1rem;
         }
 
         .input-group {
-            display: flex;
-            gap: 1rem;
+            flex: 1;
+        }
+
+        h1 {
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .note {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 1rem;
         }
     </style>
 </head>
 <body>
-    <div class="checkout-container">
-        <h2>Digital Product Checkout</h2>
+    <div class="container">
+        <h1>Digital Products Store</h1>
         
         <div class="form-group">
-            <label for="client-id">PayPal Client ID</label>
+            <label for="client-id">PayPal Client ID:</label>
             <input type="text" id="client-id" placeholder="Enter your Client ID" required>
         </div>
 
         <div class="form-group">
-            <label for="product-desc">Product Description</label>
-            <textarea id="product-desc" rows="3" placeholder="Enter product description for PayPal" required></textarea>
+            <label for="item-description">Product Description:</label>
+            <textarea id="item-description" rows="3" required 
+                      placeholder="Enter product description (this will appear in PayPal transaction)"></textarea>
         </div>
 
-        <div class="input-group">
-            <div class="form-group" style="flex: 1">
-                <label>Payment Amount</label>
-                <div class="amount-input">
-                    <span class="currency-symbol">$</span>
-                    <input type="number" id="amount" step="0.01" min="0.01" placeholder="0.00" required>
-                </div>
+        <div class="currency-group">
+            <div class="input-group">
+                <label for="amount">Amount:</label>
+                <input type="number" id="amount" step="0.01" min="0" required>
             </div>
             
-            <div class="form-group" style="flex: 1">
-                <label>Currency</label>
+            <div class="input-group">
+                <label for="currency">Currency:</label>
                 <select id="currency">
                     <option value="USD">USD</option>
                     <option value="CAD">CAD</option>
@@ -128,82 +109,84 @@
             </div>
         </div>
 
-        <div class="highlight-box">
-            <p>ℹ️ Virtual product - No shipping address required</p>
-        </div>
-
-        <button onclick="initializePayPal()">Generate Payment Link</button>
         <div id="paypal-button-container"></div>
+        <p class="note">All transactions are processed securely through PayPal.</p>
     </div>
 
-    <!-- PayPal SDK -->
-    <script src="https://www.paypal.com/sdk/js?client-id=sb&components=buttons,hosted-fields&currency=USD"></script>
-    
     <script>
-        function initializePayPal() {
+        function initPayPal() {
             const clientId = document.getElementById('client-id').value;
-            const description = document.getElementById('product-desc').value;
-            const amount = document.getElementById('amount').value;
-            const currency = document.getElementById('currency').value;
+            if (!clientId) return alert('Please enter your Client ID');
 
-            if (!clientId || !description || !amount) {
-                alert('Please fill all required fields');
-                return;
-            }
+            paypal.Buttons({
+                style: {
+                    layout: 'vertical',
+                    color: 'blue',
+                    shape: 'rect',
+                    label: 'paypal'
+                },
 
-            // Clean previous PayPal instance
-            document.getElementById('paypal-button-container').innerHTML = '';
-            document.head.querySelectorAll('script[src^="https://www.paypal.com/sdk/js"]').forEach(el => el.remove());
-
-            // Load new PayPal SDK
-            const script = document.createElement('script');
-            script.src = `https://www.paypal.com/sdk/js?client-id=${clientId}&components=buttons,hosted-fields&currency=${currency}`;
-            document.head.appendChild(script);
-
-            script.onload = () => {
-                paypal.Buttons({
-                    style: {
-                        layout: 'vertical',
-                        color:  'blue',
-                        shape:  'rect',
-                        label:  'pay'
-                    },
-
-                    createOrder: function(data, actions) {
-                        return actions.order.create({
-                            purchase_units: [{
-                                category: 'DIGITAL_GOODS',
-                                description: description,
-                                amount: {
-                                    currency_code: currency,
-                                    value: amount
+                createOrder: function(data, actions) {
+                    return actions.order.create({
+                        purchase_units: [{
+                            amount: {
+                                value: document.getElementById('amount').value,
+                                currency_code: document.getElementById('currency').value
+                            },
+                            description: document.getElementById('item-description').value,
+                            category: 'DIGITAL_GOODS',
+                            shipping: {
+                                name: {
+                                    full_name: ''
+                                },
+                                address: {
+                                    address_line_1: 'N/A',
+                                    admin_area_2: 'N/A',
+                                    postal_code: '00000',
+                                    country_code: 'US'
                                 }
-                            }],
-                            application_context: {
-                                shipping_preference: 'NO_SHIPPING'
                             }
-                        });
-                    },
+                        }],
+                        application_context: {
+                            shipping_preference: 'NO_SHIPPING'
+                        }
+                    });
+                },
 
-                    onApprove: function(data, actions) {
-                        return actions.order.capture().then(function(details) {
-                            alert('Payment completed by ' + details.payer.name.given_name);
-                        });
-                    }
-                }).render('#paypal-button-container');
+                onApprove: function(data, actions) {
+                    return actions.order.capture().then(function(details) {
+                        alert('Transaction completed by ' + details.payer.name.given_name);
+                    });
+                }
+            }).render('#paypal-button-container');
 
-                // Credit card form configuration
-                paypal.HostedFields.render({
-                    createOrder: function () { /* ... */ },
-                    styles: { /* ... */ },
-                    fields: {
-                        number: { selector: "#card-number" },
-                        cvv: { selector: "#cvv" },
-                        expirationDate: { selector: "#expiration-date" }
-                    }
+            // Debit/Credit Card form
+            paypal.HostedFields.render({
+                createOrder: function() { /* ... same createOrder ... */ },
+                styles: {
+                    '.valid': {'color': '#28a745'},
+                    '.invalid': {'color': '#dc3545'}
+                },
+                fields: {
+                    number: {selector: '#card-number'},
+                    cvv: {selector: '#cvv'},
+                    expirationDate: {selector: '#expiration-date'}
+                }
+            }).then(function(hf) {
+                document.querySelector('#card-button').addEventListener('click', function() {
+                    hf.submit();
                 });
-            };
+            });
         }
+
+        // Reinitialize when settings change
+        document.getElementById('client-id').addEventListener('change', initPayPal);
+        document.getElementById('currency').addEventListener('change', initPayPal);
+        document.getElementById('amount').addEventListener('change', initPayPal);
+        document.getElementById('item-description').addEventListener('change', initPayPal);
+
+        // Initial load
+        initPayPal();
     </script>
 </body>
 </html>
