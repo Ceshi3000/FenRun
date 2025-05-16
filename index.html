@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="-en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -46,9 +46,20 @@
             transition: border-color 0.3s ease;
         }
 
-        input:focus, select:focus, textarea:focus {
-            border-color: var(--secondary-color);
-            outline: none;
+        .amount-input {
+            position: relative;
+        }
+
+        .currency-symbol {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        #amount {
+            padding-left: 30px;
         }
 
         button {
@@ -60,6 +71,7 @@
             cursor: pointer;
             font-size: 16px;
             transition: background 0.3s ease;
+            width: 100%;
         }
 
         button:hover {
@@ -70,17 +82,16 @@
             margin-top: 2rem;
         }
 
-        .currency-selector {
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-        }
-
         .highlight-box {
             background: #e3f2fd;
             padding: 1rem;
             border-radius: 8px;
             margin: 1rem 0;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
         }
     </style>
 </head>
@@ -90,17 +101,25 @@
         
         <div class="form-group">
             <label for="client-id">PayPal Client ID</label>
-            <input type="text" id="client-id" placeholder="Enter your Client ID">
+            <input type="text" id="client-id" placeholder="Enter your Client ID" required>
         </div>
 
         <div class="form-group">
             <label for="product-desc">Product Description</label>
-            <textarea id="product-desc" rows="3" placeholder="Enter product description for PayPal"></textarea>
+            <textarea id="product-desc" rows="3" placeholder="Enter product description for PayPal" required></textarea>
         </div>
 
-        <div class="form-group">
-            <label>Payment Currency</label>
-            <div class="currency-selector">
+        <div class="input-group">
+            <div class="form-group" style="flex: 1">
+                <label>Payment Amount</label>
+                <div class="amount-input">
+                    <span class="currency-symbol">$</span>
+                    <input type="number" id="amount" step="0.01" min="0.01" placeholder="0.00" required>
+                </div>
+            </div>
+            
+            <div class="form-group" style="flex: 1">
+                <label>Currency</label>
                 <select id="currency">
                     <option value="USD">USD</option>
                     <option value="CAD">CAD</option>
@@ -124,10 +143,17 @@
         function initializePayPal() {
             const clientId = document.getElementById('client-id').value;
             const description = document.getElementById('product-desc').value;
+            const amount = document.getElementById('amount').value;
             const currency = document.getElementById('currency').value;
+
+            if (!clientId || !description || !amount) {
+                alert('Please fill all required fields');
+                return;
+            }
 
             // Clean previous PayPal instance
             document.getElementById('paypal-button-container').innerHTML = '';
+            document.head.querySelectorAll('script[src^="https://www.paypal.com/sdk/js"]').forEach(el => el.remove());
 
             // Load new PayPal SDK
             const script = document.createElement('script');
@@ -150,7 +176,7 @@
                                 description: description,
                                 amount: {
                                     currency_code: currency,
-                                    value: '0.01' // Set your price here
+                                    value: amount
                                 }
                             }],
                             application_context: {
